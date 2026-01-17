@@ -135,27 +135,52 @@ export default function DetailPanel() {
                         )}
 
                         <div className="space-y-4">
-                            <h3 className="text-sm font-bold border-b border-white/10 pb-2 flex items-center gap-2">
-                                {t('businessStrategy')}
-                            </h3>
-                            <div className="space-y-4">
-                                {company.proposals?.map((proposal: IdeaProposal, idx) => {
-                                    const Icon = TYPE_ICONS[proposal.type as keyof typeof TYPE_ICONS];
-                                    return (
-                                        <div key={idx} className="group p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-brand-primary/30 transition-all hover:bg-white/[0.02]">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <div className="p-1.5 rounded-lg bg-brand-primary/10 text-brand-primary">
-                                                    <Icon className="w-4 h-4" />
-                                                </div>
-                                                <span className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">
-                                                    {t(proposal.type as any) || proposal.type}
-                                                </span>
-                                            </div>
-                                            <h4 className="font-bold text-sm mb-1 group-hover:text-brand-primary transition-colors">{proposal.title}</h4>
-                                            <p className="text-xs text-white/60 leading-relaxed">{proposal.content}</p>
+                            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                                <h3 className="text-sm font-bold flex items-center gap-2">
+                                    {t('businessStrategy')}
+                                </h3>
+                                {company.isGenerating && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+                                        <span className="text-[10px] text-brand-primary font-bold animate-pulse">AI 분석 중...</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-4 relative">
+                                {company.isGenerating && (!company.proposals || company.proposals.length === 0) ? (
+                                    // Skeleton UI
+                                    [1, 2, 3].map(i => (
+                                        <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/5 animate-pulse space-y-2">
+                                            <div className="w-20 h-3 bg-white/10 rounded" />
+                                            <div className="w-full h-4 bg-white/10 rounded" />
+                                            <div className="w-2/3 h-3 bg-white/10 rounded" />
                                         </div>
-                                    );
-                                })}
+                                    ))
+                                ) : (
+                                    company.proposals?.map((proposal: IdeaProposal, idx) => {
+                                        const Icon = TYPE_ICONS[proposal.type as keyof typeof TYPE_ICONS] || Target;
+                                        return (
+                                            <motion.div
+                                                key={idx}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="group p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-brand-primary/30 transition-all hover:bg-white/[0.02]"
+                                            >
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="p-1.5 rounded-lg bg-brand-primary/10 text-brand-primary">
+                                                        <Icon className="w-4 h-4" />
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">
+                                                        {t(proposal.type as any) || proposal.type}
+                                                    </span>
+                                                </div>
+                                                <h4 className="font-bold text-sm mb-1 group-hover:text-brand-primary transition-colors">{proposal.title}</h4>
+                                                <p className="text-xs text-white/60 leading-relaxed">{proposal.content}</p>
+                                            </motion.div>
+                                        );
+                                    })
+                                )}
                             </div>
                         </div>
 

@@ -16,6 +16,7 @@ export interface Company {
     lastUsed?: number;
     suggestedNames?: string[];
     proposals?: IdeaProposal[];
+    isGenerating?: boolean;
 }
 
 export interface CanvasItem {
