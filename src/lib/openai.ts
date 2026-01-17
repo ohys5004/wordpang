@@ -41,8 +41,11 @@ export const generateCompanyNames = async (company1: string, company2: string, p
             max_tokens: 200
         });
 
-        const content = response.choices[0]?.message?.content || '[]';
+        let content = response.choices[0]?.message?.content || '[]';
         console.log('✅ AI response for names:', content);
+
+        // Remove markdown code blocks if present
+        content = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
 
         const names = JSON.parse(content);
         return Array.isArray(names) && names.length > 0 ? names : [
@@ -105,8 +108,11 @@ JSON 배열 형식으로 답변해주세요:
             max_tokens: 2000
         });
 
-        const content = response.choices[0]?.message?.content || '[]';
+        let content = response.choices[0]?.message?.content || '[]';
         console.log('✅ AI response for strategies:', content.substring(0, 200) + '...');
+
+        // Remove markdown code blocks if present
+        content = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
 
         const strategies = JSON.parse(content);
         return Array.isArray(strategies) && strategies.length > 0 ? strategies : [];

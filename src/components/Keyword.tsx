@@ -90,28 +90,55 @@ export default function Keyword({ item }: { item: CanvasItem }) {
             dragMomentum={false}
             onDrag={handleDrag}
             onDragEnd={handleDragEnd}
-            initial={{ scale: 0, x: item.x, y: item.y }}
+            initial={{ scale: 0, rotate: company.isHybrid ? -180 : 0, x: item.x, y: item.y }}
             animate={{
                 scale: 1,
+                rotate: 0,
                 x: item.x,
                 y: item.y,
-                boxShadow: isMerging ? '0 0 40px rgba(139, 92, 246, 0.6)' : '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+                boxShadow: isMerging
+                    ? '0 0 40px rgba(139, 92, 246, 0.6)'
+                    : company.isHybrid
+                        ? '0 0 30px rgba(236, 72, 153, 0.4)'
+                        : '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
             }}
-            exit={{ scale: 0 }}
-            whileHover={{ scale: 1.05 }}
-            whileDrag={{ scale: 1.1, zIndex: 100 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.05, cursor: 'grab' }}
+            whileDrag={{ scale: 1.1, zIndex: 100, cursor: 'grabbing' }}
             onClick={(e) => {
                 e.stopPropagation();
                 selectItem(item.id);
             }}
             className={cn(
-                "absolute cursor-grab active:cursor-grabbing glass-card px-6 py-3 rounded-full border-2 transition-colors",
+                "absolute glass-card px-6 py-3 rounded-full border-2 transition-colors z-10",
                 isMerging ? "border-brand-primary border-dashed scale-110" : "border-white/10",
-                isSelected && "ring-2 ring-brand-primary shadow-[0_0_20px_rgba(139,92,246,0.5)]"
+                isSelected && "ring-2 ring-brand-primary shadow-[0_0_20px_rgba(139,92,246,0.5)]",
+                company.isHybrid && "border-brand-secondary/50"
             )}
         >
-            <div className="flex flex-col items-center">
-                <span className="font-bold whitespace-nowrap text-base">{company.name}</span>
+            {company.isHybrid && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0.8, scale: 1 }}
+                        animate={{ opacity: 0, scale: 2 }}
+                        transition={{ duration: 0.8, ease: "easeOut", repeat: 0 }}
+                        className="absolute inset-0 -z-10 rounded-full bg-brand-secondary/20 pointer-events-none"
+                    />
+                    <motion.div
+                        initial={{ opacity: 0.5, scale: 1 }}
+                        animate={{ opacity: 0, scale: 2.5 }}
+                        transition={{ duration: 1, delay: 0.1, ease: "easeOut", repeat: 0 }}
+                        className="absolute inset-0 -z-10 rounded-full border border-brand-secondary/30 pointer-events-none"
+                    />
+                </>
+            )}
+
+            <div className="flex flex-col items-center pointer-events-none">
+                <span className={cn(
+                    "font-bold whitespace-nowrap text-base",
+                    company.isHybrid ? "gradient-text" : "text-white"
+                )}>{company.name}</span>
                 {company.isHybrid && (
                     <span className="text-[8px] text-brand-secondary font-bold uppercase -mt-0.5 tracking-widest">Hybrid</span>
                 )}
