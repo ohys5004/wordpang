@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Company, CanvasItem, IdeaProposal } from '@/types';
 import { SP500_COMPANIES } from '@/data/companies';
-import { generateCompanyNames, generateBusinessStrategies } from '@/lib/openai';
+import { generateCompanyNames, generateCompanyProfile } from '@/lib/openai';
 import { supabase } from '@/lib/supabase';
 
 interface WordPangState {
@@ -308,10 +308,10 @@ export const useStore = create<WordPangState>((set, get) => ({
             lastUsed: Date.now(),
             suggestedNames: suggestions,
             proposals: [],
-            description: `${comp1.name}의 ${industry1} 역량과 ${comp2.name}의 ${industry2} 기술을 결합한 차세대 비즈니스 모델.`,
+            description: `새로운 유니콘 기업이 탄생하고 있습니다...`,
             isEstimated: true,
             products: [...products1.slice(0, 2), ...products2.slice(0, 2), `${idealName} Platform`].filter((v, i, a) => a.indexOf(v) === i),
-            productOverview: `${comp1.name}와 ${comp2.name}의 강점을 융합하여 혁신적인 가치를 창출하고 있습니다...`,
+            productOverview: `세상을 놀라게 할 혁신적인 비즈니스 모델을 수립 중입니다.`,
             employees: "추정치",
             founded: new Date().getFullYear(),
             headquarter: `${comp1.headquarter || 'Global'} / ${comp2.headquarter || 'Global'}`
@@ -339,7 +339,10 @@ export const useStore = create<WordPangState>((set, get) => ({
         // 4. Step 2: Generate Strategies in Background
         (async () => {
             try {
-                const aiStrategies = await generateBusinessStrategies(
+                // Changing import to generateCompanyProfile which now returns an object
+                const { generateCompanyProfile: generateProfile } = await import('@/lib/openai');
+
+                const profile = await generateProfile(
                     comp1.name,
                     comp2.name,
                     industry1,
@@ -348,8 +351,8 @@ export const useStore = create<WordPangState>((set, get) => ({
                     products2
                 );
 
-                let finalProposals: IdeaProposal[] = (aiStrategies && aiStrategies.length > 0)
-                    ? (aiStrategies as IdeaProposal[])
+                let finalProposals: IdeaProposal[] = (profile.strategies && profile.strategies.length > 0)
+                    ? (profile.strategies as IdeaProposal[])
                     : [
                         { type: 'stable', title: '점진적 시스템 통합', content: '양사의 기술적 부채를 해결하고 핵심 서비스를 점진적으로 통합합니다.' },
                         { type: 'disruptive', title: '시장 파괴적 신규 모델', content: '양 사의 강점을 결합하여 기존 시장 질서를 재정의하는 솔루션을 출시합니다.' }
@@ -357,7 +360,14 @@ export const useStore = create<WordPangState>((set, get) => ({
 
                 set((curr) => ({
                     companies: curr.companies.map(c =>
-                        c.id === hybridId ? { ...c, proposals: finalProposals, isGenerating: false } : c
+                        c.id === hybridId ? {
+                            ...c,
+                            proposals: finalProposals,
+                            description: profile.description || c.description,
+                            productOverview: profile.productOverview || c.productOverview,
+                            products: profile.productName ? [profile.productName] : c.products,
+                            isGenerating: false
+                        } : c
                     )
                 }));
                 console.log('✅ Background generation complete!');
