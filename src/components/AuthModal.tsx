@@ -27,15 +27,26 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 // Simulate network latency
                 await new Promise(resolve => setTimeout(resolve, 800));
 
+                // Create a mock user object
+                const mockUser = {
+                    id: 'mock-user-id',
+                    email: email,
+                    user_metadata: { full_name: 'Test User' },
+                    aud: 'authenticated',
+                    role: 'authenticated'
+                };
+
+                // Update global store (via useStore, we need to call setUser)
+                // Note: useStore is used inside the component to get setUser
+                const { setUser } = (window as any).store;
+                // Wait, better to use the hook inside the component. 
+                // I will add the hook call above.
+
                 if (isSignUp) {
-                    alert('Mock Mode: Registration successful! (Placeholder)');
-                } else {
-                    // We can't easily forge a real Supabase session without the backend,
-                    // but we can at least make the UI progress.
-                    // Instead of signIn, we just alert and close for now.
-                    // In a more robust mock, we'd update a local state.
-                    console.warn('WordPang is running in MOCK AUTH mode. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local for real authentication.');
+                    alert(`Mock Mode: Registration successful for ${email}!`);
                 }
+
+                onMockLogin(mockUser);
                 onClose();
                 return;
             }

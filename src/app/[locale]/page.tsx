@@ -11,10 +11,13 @@ import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
 export default function Home() {
-  const { usageCount } = useStore();
+  const { usageCount, user, setUser, loadCompanies } = useStore();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    loadCompanies();
+  }, [loadCompanies]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -35,7 +38,7 @@ export default function Home() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [setUser]);
 
   useEffect(() => {
     if (usageCount >= 5 && !user) {

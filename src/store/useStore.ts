@@ -2,14 +2,18 @@ import { create } from 'zustand';
 import { Company, CanvasItem, IdeaProposal } from '@/types';
 import { SP500_COMPANIES } from '@/data/companies';
 import { generateCompanyNames, generateBusinessStrategies } from '@/lib/openai';
+import { supabase } from '@/lib/supabase';
 
 interface WordPangState {
     companies: Company[];
     canvasItems: CanvasItem[];
     selectedItemId: string | null;
     usageCount: number;
+    user: any | null; // Adding user state
 
     // Actions
+    setUser: (user: any | null) => void;
+    loadCompanies: () => Promise<void>;
     addCompany: (company: Company) => void;
     addCompanyByUrl: (url: string) => void;
     addToCanvas: (companyId: string, x: number, y: number) => void;
@@ -18,6 +22,7 @@ interface WordPangState {
     selectItem: (itemId: string | null) => void;
     combineItems: (item1Id: string, item2Id: string) => Promise<void>;
     updateCompanyName: (companyId: string, newName: string) => void;
+    signOut: () => Promise<void>;
 }
 
 // Initial mock data
@@ -110,6 +115,57 @@ export const useStore = create<WordPangState>((set, get) => ({
     canvasItems: [],
     selectedItemId: null,
     usageCount: 0,
+    user: null,
+
+    setUser: (user) => set({ user }),
+    signOut: async () => {
+        await supabase.auth.signOut();
+        set({ user: null });
+    },
+
+    loadCompanies: async () => {
+        try {
+            const { data, error } = await supabase
+                .from('companies')
+                .select('*')
+                .order('name');
+
+            if (error) throw error;
+            if (data) {
+                const fetchedCompanies: Company[] = data.map(c => ({
+                    id: c.id,
+                    name: c.name,
+                    url: c.url,
+                    headquarter: c.headquarter,
+                    description: c.description,
+                    productOverview: c.product_overview,
+                    products: c.products,
+                    employees: c.employees,
+                    founded: c.founded,
+                    linkedinUrl: c.linkedin_url,
+                    isHybrid: c.is_hybrid,
+                    isEstimated: c.is_estimated,
+                    lastUsed: Date.now() // or from DB if needed
+                }));
+
+                set((state) => {
+                    // Merge fetched companies with initial mock companies to avoid duplicates
+                    const merged = [...state.companies];
+                    fetchedCompanies.forEach(f => {
+                        const idx = merged.findIndex(m => m.name === f.name);
+                        if (idx >= 0) {
+                            merged[idx] = { ...merged[idx], ...f };
+                        } else {
+                            merged.push(f);
+                        }
+                    });
+                    return { companies: merged };
+                });
+            }
+        } catch (error) {
+            console.error('❌ Error loading companies from Supabase:', error);
+        }
+    },
 
     addCompany: (company) => set((state) => ({
         companies: [company, ...state.companies]
@@ -207,7 +263,7 @@ export const useStore = create<WordPangState>((set, get) => ({
         const products1 = comp1.products || [];
         const products2 = comp2.products || [];
 
-        // Detect industries
+        // 1. Quick industry detection
         const getIndustry = (company: Company): string => {
             const desc = (company.description || '').toLowerCase();
             const products = (company.products || []).join(' ').toLowerCase();
@@ -225,100 +281,37 @@ export const useStore = create<WordPangState>((set, get) => ({
 
         const industry1 = getIndustry(comp1);
         const industry2 = getIndustry(comp2);
+        const hybridId = `hybrid-${Date.now()}`;
 
-        console.log('📊 Industries:', industry1, '+', industry2);
-
-        // Generate AI-powered names
+        // 2. Step 1: Generate Name Immediately
         let suggestions: string[] = [];
         try {
-            console.log('🎨 Calling AI for names...');
+            console.log('🎨 Requesting names...');
             suggestions = await generateCompanyNames(comp1.name, comp2.name, products1, products2);
-            if (!suggestions || suggestions.length === 0) {
-                console.warn('⚠️ AI returned no names, using fallback');
-                suggestions = generateIntuitiveNames(comp1.name, comp2.name);
-            }
-            console.log('✅ Got names:', suggestions);
         } catch (error) {
             console.error('❌ Name generation failed:', error);
+        }
+
+        if (!suggestions || suggestions.length === 0) {
             suggestions = generateIntuitiveNames(comp1.name, comp2.name);
         }
 
         const idealName = suggestions[0] || `${comp1.name} × ${comp2.name}`;
 
-        // Generate AI-powered business strategies
-        let mockProposals: IdeaProposal[] = [];
-        try {
-            console.log('📊 Calling AI for strategies...');
-            const aiStrategies = await generateBusinessStrategies(
-                comp1.name,
-                comp2.name,
-                industry1,
-                industry2,
-                products1,
-                products2
-            );
-
-            if (aiStrategies && aiStrategies.length > 0) {
-                mockProposals = aiStrategies as IdeaProposal[];
-                console.log('✅ Got', mockProposals.length, 'AI strategies');
-            } else {
-                console.warn('⚠️ AI returned no strategies, using fallback');
-            }
-        } catch (error) {
-            console.error('❌ Strategy generation failed:', error);
-        }
-
-        // Fallback only if AI completely failed
-        if (mockProposals.length === 0) {
-            console.log('📝 Using fallback strategies');
-            const product1Sample = products1[0] || `${comp1.name} 서비스`;
-            const product2Sample = products2[0] || `${comp2.name} 서비스`;
-
-            mockProposals = [
-                {
-                    type: 'stable',
-                    title: `${comp1.name} × ${comp2.name} 통합 생태계`,
-                    content: `${product1Sample}와 ${product2Sample}를 하나의 플랫폼으로 통합. 크로스 셀링으로 고객당 평균 매출 250% 증가. 월 구독료 $49~$199, 예상 첫해 ARR $50M+`
-                },
-                {
-                    type: 'disruptive',
-                    title: 'AI 기반 자동화 혁신',
-                    content: `${comp1.name}의 데이터와 ${comp2.name}의 기술을 결합한 완전 자율 운영 시스템. 인건비 60% 절감, 처리 속도 10배 향상.`
-                },
-                {
-                    type: 'b2b',
-                    title: 'Fortune 500 전용 솔루션',
-                    content: `${comp1.name}의 ${products1[0] || '기술'}과 ${comp2.name}의 ${products2[0] || '인프라'}를 결합한 맞춤형 패키지. 계약당 $500K~$2M`
-                },
-                {
-                    type: 'niche',
-                    title: '프리미엄 틈새 시장 공략',
-                    content: `${comp1.name}과 ${comp2.name}의 강점을 살린 하이엔드 시장 집중. 상위 1% 고객 타겟, 객단가 $10K+`
-                },
-                {
-                    type: 'future',
-                    title: '메타버스 경제 플랫폼',
-                    content: `가상-현실 융합 커머스. ${comp1.name}의 기술로 3D 쇼핑 경험 구현. 2030년 메타버스 시장 $800B 중 5% 점유 목표`
-                }
-            ];
-        }
-
-        const newCompany: Company = {
-            id: `hybrid-${Date.now()}`,
+        // 3. Add to canvas and state with 'isGenerating: true'
+        const interimCompany: Company = {
+            id: hybridId,
             name: idealName,
             isHybrid: true,
+            isGenerating: true,
             parents: [comp1.id, comp2.id],
             lastUsed: Date.now(),
             suggestedNames: suggestions,
-            proposals: mockProposals,
+            proposals: [],
             description: `${comp1.name}의 ${industry1} 역량과 ${comp2.name}의 ${industry2} 기술을 결합한 차세대 비즈니스 모델.`,
             isEstimated: true,
-            products: [
-                ...products1.slice(0, 2),
-                ...products2.slice(0, 2),
-                `${idealName} 통합 플랫폼`
-            ].filter((v, i, a) => a.indexOf(v) === i),
-            productOverview: `${comp1.name}의 ${products1[0] || '핵심 기술'}과 ${comp2.name}의 ${products2[0] || '시장 지배력'}을 융합하여 ${industry1}-${industry2} 시장에 새로운 가치를 창출합니다.`,
+            products: [...products1.slice(0, 2), ...products2.slice(0, 2), `${idealName} Platform`].filter((v, i, a) => a.indexOf(v) === i),
+            productOverview: `${comp1.name}와 ${comp2.name}의 강점을 융합하여 혁신적인 가치를 창출하고 있습니다...`,
             employees: "추정치",
             founded: new Date().getFullYear(),
             headquarter: `${comp1.headquarter || 'Global'} / ${comp2.headquarter || 'Global'}`
@@ -326,16 +319,14 @@ export const useStore = create<WordPangState>((set, get) => ({
 
         const newCanvasItem: CanvasItem = {
             id: Math.random().toString(36).substr(2, 9),
-            companyId: newCompany.id,
+            companyId: hybridId,
             x: (item1.x + item2.x) / 2,
             y: (item1.y + item2.y) / 2
         };
 
-        console.log('🎉 Creating:', newCompany.name);
-
         set({
             usageCount: state.usageCount + 1,
-            companies: [newCompany, ...state.companies],
+            companies: [interimCompany, ...state.companies],
             canvasItems: [
                 ...state.canvasItems.filter(i => i.id !== item1Id && i.id !== item2Id),
                 newCanvasItem
@@ -343,6 +334,39 @@ export const useStore = create<WordPangState>((set, get) => ({
             selectedItemId: newCanvasItem.id
         });
 
-        console.log('✅ Complete!');
+        console.log('🎉 Brand added. Generating strategies in background...');
+
+        // 4. Step 2: Generate Strategies in Background
+        (async () => {
+            try {
+                const aiStrategies = await generateBusinessStrategies(
+                    comp1.name,
+                    comp2.name,
+                    industry1,
+                    industry2,
+                    products1,
+                    products2
+                );
+
+                let finalProposals: IdeaProposal[] = (aiStrategies && aiStrategies.length > 0)
+                    ? (aiStrategies as IdeaProposal[])
+                    : [
+                        { type: 'stable', title: '점진적 시스템 통합', content: '양사의 기술적 부채를 해결하고 핵심 서비스를 점진적으로 통합합니다.' },
+                        { type: 'disruptive', title: '시장 파괴적 신규 모델', content: '양 사의 강점을 결합하여 기존 시장 질서를 재정의하는 솔루션을 출시합니다.' }
+                    ];
+
+                set((curr) => ({
+                    companies: curr.companies.map(c =>
+                        c.id === hybridId ? { ...c, proposals: finalProposals, isGenerating: false } : c
+                    )
+                }));
+                console.log('✅ Background generation complete!');
+            } catch (error) {
+                console.error('❌ Background generation failed:', error);
+                set((curr) => ({
+                    companies: curr.companies.map(c => c.id === hybridId ? { ...c, isGenerating: false } : c)
+                }));
+            }
+        })();
     },
 }));

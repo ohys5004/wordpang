@@ -34,7 +34,7 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className="dark">
+    <html lang={locale} className="dark" suppressHydrationWarning>
       <body
         className={`${outfit.variable} font-sans antialiased bg-black text-white selection:bg-purple-500/30 selection:text-purple-200`}
       >
