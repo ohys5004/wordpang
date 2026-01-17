@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase, isMock } from '@/lib/supabase';
+import { useStore } from '@/store/useStore';
 import { X, Mail, Lock, UserPlus, LogIn, Github, AlertCircle } from 'lucide-react';
 
 interface AuthModalProps {
@@ -11,6 +12,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+    const { setUser } = useStore();
     const [isSignUp, setIsSignUp] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -36,17 +38,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     role: 'authenticated'
                 };
 
-                // Update global store (via useStore, we need to call setUser)
-                // Note: useStore is used inside the component to get setUser
-                const { setUser } = (window as any).store;
-                // Wait, better to use the hook inside the component. 
-                // I will add the hook call above.
-
                 if (isSignUp) {
                     alert(`Mock Mode: Registration successful for ${email}!`);
                 }
 
-                onMockLogin(mockUser);
+                setUser(mockUser);
                 onClose();
                 return;
             }
