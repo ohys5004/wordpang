@@ -65,19 +65,28 @@ export const generateCompanyNames = async (company1: string, company2: string, p
     }
 };
 
-export const generateBusinessStrategies = async (
+export const generateCompanyProfile = async (
     company1: string,
     company2: string,
     industry1: string,
     industry2: string,
     products1: string[],
     products2: string[]
-): Promise<Array<{ type: string; title: string; content: string }>> => {
-    console.log('📊 Generating business strategies for:', company1, '+', company2);
+): Promise<{
+    productName: string;
+    description: string;
+    productOverview: string;
+    strategies: Array<{ type: string; title: string; content: string }>;
+}> => {
+    console.log('📊 Generating company profile for:', company1, '+', company2);
 
     if (!openai) {
-        console.warn('⚠️ OpenAI client not initialized, using fallback strategies');
-        return [];
+        return {
+            productName: `${company1}-${company2} Core`,
+            description: `${company1}와 ${company2}의 장점을 흡수한 새로운 벤처입니다.`,
+            productOverview: '혁신적인 차세대 솔루션을 제공합니다.',
+            strategies: []
+        };
     }
 
     try {
@@ -86,38 +95,57 @@ export const generateBusinessStrategies = async (
             messages: [
                 {
                     role: "system",
-                    content: "당신은 비즈니스 전략 컨설턴트입니다. 두 회사를 합쳤을 때 가능한 구체적이고 실현 가능한 비즈니스 전략을 제안해주세요. 각 전략에는 구체적인 수치(매출, 시장 규모, 비용 절감 등)를 포함해야 합니다."
+                    content: `당신은 실리콘밸리의 천재적인 창업가이자 비전가입니다. 
+두 회사의 DNA를 섞어 태어난 '완전히 새로운 스타트업'을 소개해야 합니다.
+
+중요한 규칙:
+1. 이 회사는 오직 '단 하나의 혁신적인 제품'에 모든 사활을 걸고 있습니다. 여러 제품을 나열하지 마세요.
+2. 회사의 설명, 비전, 그리고 모든 비즈니스 전략은 이 '단 하나의 제품'을 성공시키기 위한 것이어야 합니다.
+3. 단순히 "A와 B를 합쳤습니다"라고 설명하지 마세요. 마치 처음부터 존재했던 혁신적인 기업인 것처럼, 유머러스하고 대담하며 창의적인 톤으로 회사를 정의하세요.`
                 },
                 {
                     role: "user",
-                    content: `${company1} (${industry1} 산업, 제품: ${products1.join(', ') || '없음'})과 ${company2} (${industry2} 산업, 제품: ${products2.join(', ') || '없음'})를 합친 새로운 회사의 비즈니스 전략 7개를 제안해주세요.
+                    content: `${company1} (${industry1} 산업)와 ${company2} (${industry2} 산업)의 유전자를 결합한 새로운 회사의 프로필을 작성해주세요.
 
-각 전략은 다음 타입 중 하나여야 합니다: stable, disruptive, niche, b2b, future
+반환 형식은 반드시 다음 JSON 포맷을 따라주세요:
+{
+  "productName": "회사가 세상에 내놓을 단 하나의 혁신적인 제품 이름 (짧고 강렬하게)",
+  "description": "이 제품을 통해 이 회사가 이루고자 하는 비전 (대담하고 재밌는 한 문장)",
+  "productOverview": "이 단 하나의 제품이 무엇인지, 어떤 문제를 해결하는지 매력적으로 설명 (기존 제품 나열 절대 금지)",
+  "strategies": [
+     { "type": "stable", "title": "전략 제목", "content": "이 제품을 안정적으로 시장에 안착시키기 위한 전략" },
+     { "type": "disruptive", "title": "전략 제목", "content": "이 제품으로 시장의 판도를 뒤집을 전략" },
+     ... (총 5~7개)
+  ]
+}
 
-JSON 배열 형식으로 답변해주세요:
-[
-  {
-    "type": "stable",
-    "title": "전략 제목",
-    "content": "구체적인 전략 내용 (수치 포함, 200자 이내)"
-  }
-]`
+전략 타입: stable, disruptive, niche, b2b, future`
                 }
             ],
-            temperature: 0.8,
+            temperature: 0.9,
             max_tokens: 2000
         });
 
-        let content = response.choices[0]?.message?.content || '[]';
-        console.log('✅ AI response for strategies:', content.substring(0, 200) + '...');
+        let content = response.choices[0]?.message?.content || '{}';
+        console.log('✅ AI response for profile:', content.substring(0, 200) + '...');
 
         // Remove markdown code blocks if present
         content = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
 
-        const strategies = JSON.parse(content);
-        return Array.isArray(strategies) && strategies.length > 0 ? strategies : [];
+        const parsed = JSON.parse(content);
+        return {
+            productName: parsed.productName || 'Innovation One',
+            description: parsed.description || '',
+            productOverview: parsed.productOverview || '',
+            strategies: Array.isArray(parsed.strategies) ? parsed.strategies : []
+        };
     } catch (error) {
-        console.error('❌ OpenAI API Error (strategies):', error);
-        return [];
+        console.error('❌ OpenAI API Error (profile):', error);
+        return {
+            productName: 'Stealth Product',
+            description: 'AI 응답을 불러오는 중 오류가 발생했습니다.',
+            productOverview: '잠시 후 다시 시도해주세요.',
+            strategies: []
+        };
     }
 };
