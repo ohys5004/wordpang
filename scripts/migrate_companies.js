@@ -2,8 +2,8 @@ const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
-// Load env variables manually from .env.local
-const envPath = path.resolve(__dirname, '.env.local');
+// Load env variables manually from .env.local in root
+const envPath = path.resolve(process.cwd(), '.env.local');
 const envContent = fs.readFileSync(envPath, 'utf8');
 const env = {};
 envContent.split('\n').forEach(line => {
