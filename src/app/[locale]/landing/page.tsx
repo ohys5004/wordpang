@@ -35,15 +35,6 @@ export default function LandingPage() {
             {/* Hero Section */}
             <main className="relative z-10 pt-20 pb-32 px-6">
                 <div className="max-w-5xl mx-auto text-center space-y-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-bold uppercase tracking-wider mb-4"
-                    >
-                        <Zap className="w-3 h-3" />
-                        Powered by Jay & Kelly
-                    </motion.div>
 
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
@@ -173,7 +164,7 @@ export default function LandingPage() {
 
             {/* Footer */}
             <footer className="border-t border-white/5 py-12 text-center text-white/30 text-sm relative z-10 bg-black">
-                <p>&copy; 2024 WordPang. Made with ❤️ in San Francisco, USA.</p>
+                <p>&copy; 2026 WordPang. Made with ❤️ in San Francisco, USA.</p>
             </footer>
         </div>
     );
