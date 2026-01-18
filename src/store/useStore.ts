@@ -345,6 +345,7 @@ export const useStore = create<WordPangState>((set, get) => ({
                 const profile = await generateProfile(
                     comp1.name,
                     comp2.name,
+                    idealName,
                     industry1,
                     industry2,
                     products1,
@@ -362,6 +363,7 @@ export const useStore = create<WordPangState>((set, get) => ({
                     companies: curr.companies.map(c =>
                         c.id === hybridId ? {
                             ...c,
+                            name: profile.productName || c.name,
                             proposals: finalProposals,
                             description: profile.description || c.description,
                             productOverview: profile.productOverview || c.productOverview,
